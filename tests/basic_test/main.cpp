@@ -102,7 +102,7 @@ int main(int argc, char ** argv) {
 	gset.depthBits() = 24;
 	gset.stencilBits() = 8;
 
-	BasicWindow* window = new BasicWindow("basic_test", { 800, 600 }, ez_window::Style::Default, gset);
+	BasicWindow* window = new BasicWindow("basic_test", { 800, 600 }, ez_window::StylePreset::Default, gset);
 	engine.add(window);
 
 	return engine.run(argc, argv);
