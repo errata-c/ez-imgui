@@ -5,7 +5,7 @@
 #include <ez/window/BasicEngine.hpp>
 
 #include <imgui.h>
-#include <ez/gl.hpp>
+#include <rt/loader.hpp>
 
 class BasicWindow : public ez::window::Window {
 public:
@@ -13,7 +13,8 @@ public:
 		: Window(_title, size, _style, rs)
 		, context(*this)
 	{
-		ez::gl::load();
+		bool result = rt::load();
+		assert(result);
 
 		ImGui::StyleColorsDark();
 	}

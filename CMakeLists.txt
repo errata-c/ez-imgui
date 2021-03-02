@@ -4,11 +4,14 @@ project(ez-imgui
 VERSION 1.0.0
 LANGUAGES C CXX)
 
+option(BUILD_TESTS "Build the test executables" ON)
+
 include(GNUInstallDirs)
 find_package(ez-cmake CONFIG REQUIRED)
 
 # Find deps
 find_package(imgui CONFIG REQUIRED)
+find_package(rt-loader CONFIG REQUIRED COMPONENTS glew)
 find_package(ez-window CONFIG REQUIRED)
 
 # Create main target.
@@ -21,7 +24,7 @@ target_include_directories(ez-imgui PUBLIC
 	"$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
 	"$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
-target_link_libraries(ez-imgui PUBLIC ez::window ez::input ez::glcompat imgui::imgui)
+target_link_libraries(ez-imgui PUBLIC ez::window ez::input imgui::imgui rt::loader rt::loader-glew)
 target_compile_features(ez-imgui PUBLIC cxx_std_17)
 
 # Create backends
