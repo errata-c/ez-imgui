@@ -11,7 +11,6 @@ class BasicWindow : public ez::window::Window {
 public:
 	BasicWindow(std::string_view _title, glm::ivec2 size, ez_window::Style _style, const ez_window::RenderSettings& rs)
 		: Window(_title, size, _style, rs)
-		, context(*this)
 	{
 		bool result = rt::load();
 		assert(result);
