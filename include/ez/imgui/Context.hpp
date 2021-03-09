@@ -18,7 +18,7 @@ namespace ez::imgui {
 	// That way we can use clipboard and update mouse and other things.
 	class Context {
 	public:
-		Context(window::Window & window);
+		Context();
 		~Context();
 
 		void makeActive();
