@@ -1,11 +1,13 @@
-#include <iostream>
+#include <fmt/core.h>
 
-#include <ez/imgui/Context.hpp>
+#include <ez/imgui.hpp>
+
 #include <ez/window/Window.hpp>
 #include <ez/window/BasicEngine.hpp>
 
-#include <imgui.h>
 #include <rt/loader.hpp>
+
+#include <thread>
 
 class BasicWindow : public ez::window::Window {
 public:
@@ -54,7 +56,8 @@ public:
 			ImGui::Checkbox("Another Window", &show_another_window);
 
 			ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-			ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+			//ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+			ImGui::DragVec("clear color", clear_color, 0.001f, 0.f, 1.f, "%.2f");
 
 			if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
 				counter++;
@@ -62,6 +65,27 @@ public:
 			ImGui::Text("counter = %d", counter);
 
 			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+			
+			ImGuiStyle & style = ImGui::GetStyle();
+			
+			ImVec2 space = style.ItemSpacing;
+			ImVec2 ispace = style.ItemInnerSpacing;
+			
+
+			ImGui::Text("ItemSpacing %.1f %.1f", space.x, space.y);
+			ImGui::Text("ItemInnerSpacing %.1f %.1f", ispace.x, ispace.y);
+
+			// By default the Child window will take up all the available space in the parent window.
+			// This means that to determine how big to make a child window to fit its constituents we have to calc
+			// Auto resize does nothing to help us here.
+			if (ImGui::BeginChild("Child1234", ImVec2(0,0), true, ImGuiWindowFlags_AlwaysAutoResize)) {
+				ImGui::Text("How does this layout by default?");
+				ImVec2 size = ImGui::GetItemRectSize();
+
+				ImGui::Text("%.1f %.1f", size.x, size.y);
+			}
+			ImGui::EndChild();
+			
 			ImGui::End();
 		}
 
@@ -81,11 +105,13 @@ public:
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		context.render();
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(6));
 	}
 private:
 	bool show_demo_window = true;
 	bool show_another_window = false;
-	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+	glm::vec4 clear_color = glm::vec4(0.45f, 0.55f, 0.60f, 1.00f);
 	float f = 0.0f;
 	int counter = 0;
 
