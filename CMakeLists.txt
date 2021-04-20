@@ -5,13 +5,14 @@ VERSION 0.4.1
 LANGUAGES C CXX
 )
 
-option(BUILD_TESTS "Build the test executables." ON)
-option(SEPARATE_DIRECTORY "Install the package into its own directory" ON)
-
 include(GNUInstallDirs)
-include("cmake/ez-cmake/install_package.cmake")
+include("cmake/ez-cmake/install-package.cmake")
 
-set(CONFIG_DIR "share/ez-imgui" CACHE STRING "The relative directory to install ez-imgui package config files.")
+option(BUILD_TESTS "Build the test executables" ON)
+option(SEPARATE_DIRECTORY "Install the package into its own directory" ON)
+set(CONFIG_DIR "${CMAKE_INSTALL_DATAROOTDIR}/ez-imgui" CACHE STRING "The relative directory to install package config files.")
+
+
 
 option(BUILD_OPENGL2 "Build and install the opengl2 backend" ON)
 option(BUILD_OPENGL3 "Build and install the opengl3 backend" ON)
@@ -90,15 +91,16 @@ if(BUILD_OPENGL2)
 endif()
 
 
-# Build the tests once the option is enabled.
+
 if(BUILD_TESTS)
 	add_subdirectory("tests")
 endif()
 
-# Set the proper installation path
 if(SEPARATE_DIRECTORY)
 	set(CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}/ez-imgui)
 endif()
+
+
 
 install(
 	DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/"
@@ -121,6 +123,6 @@ install_package(
 	EXPORT "ez-imgui-export"
 	VERSION "${EZ_IMGUI_VERSION}"
 	COMPATIBILITY "SameMajorVersion"
-	DESTINATION DEFAULT
+	DESTINATION "${CONFIG_DIR}"
 	PRECONFIG "cmake/preconfig.cmake"
 )
