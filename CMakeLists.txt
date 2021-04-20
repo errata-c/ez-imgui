@@ -1,63 +1,104 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(ez-imgui
-VERSION 1.0.0
-LANGUAGES C CXX)
+project(EZ_IMGUI
+VERSION 0.4.1
+LANGUAGES C CXX
+)
 
-option(BUILD_TESTS "Build the test executables" ON)
+option(BUILD_TESTS "Build the test executables." ON)
+option(SEPARATE_DIRECTORY "Install the package into its own directory" ON)
 
 include(GNUInstallDirs)
-find_package(ez-cmake CONFIG REQUIRED)
+include("cmake/ez-cmake/install_package.cmake")
+
+set(CONFIG_DIR "share/ez-imgui" CACHE STRING "The relative directory to install ez-imgui package config files.")
+
+option(BUILD_OPENGL2 "Build and install the opengl2 backend" ON)
+option(BUILD_OPENGL3 "Build and install the opengl3 backend" ON)
+option(BUILD_OPENGL4 "Build and install the opengl3 backend" ON)
+
+set(TARGET_LIST "ez-imgui")
 
 # Find deps
 find_package(imgui CONFIG REQUIRED)
+find_package(fmt CONFIG REQUIRED)
 find_package(rt-loader CONFIG REQUIRED COMPONENTS glew)
-find_package(ez-window CONFIG REQUIRED)
 
-# Create main target.
+find_package(ez-window CONFIG REQUIRED)
+find_package(ez-math CONFIG REQUIRED)
+find_package(ez-bitflags CONFIG REQUIRED)
+find_package(ez-geo CONFIG REQUIRED)
+
 add_library(ez-imgui STATIC
-# Add source files
-"src/Context.cpp"
+	"src/Context.cpp"
+	"src/VecFunctions.cpp"
+	"src/Item.cpp"
+
+	"src/layout/Padding.cpp"
+	"src/layout/Enumerators.cpp"
+	"src/layout/Anchor.cpp"
+
+	"src/containers/FlexBox.cpp"
 )
-# Add the include directory
 target_include_directories(ez-imgui PUBLIC 
 	"$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
-	"$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
+	"$<INSTALL_INTERFACE:include>"
 )
-target_link_libraries(ez-imgui PUBLIC ez::window ez::input imgui::imgui rt::loader rt::loader-glew)
+target_link_libraries(ez-imgui PUBLIC 
+	ez::window 
+	ez::math
+	ez::geo
+
+	imgui::imgui 
+	rt::loader-glew 
+	fmt::fmt
+)
+
 target_compile_features(ez-imgui PUBLIC cxx_std_17)
+add_library(ez::imgui ALIAS ez-imgui)
+set_target_properties(ez-imgui PROPERTIES EXPORT_NAME "imgui")
+
+
+if(BUILD_OPENGL4)
+	find_package(rt-core CONFIG REQUIRED)
+
+endif()
 
 # Create backends
-add_library(ez-imgui-opengl3 INTERFACE)
-target_sources(ez-imgui-opengl3 INTERFACE 
-	"$<INSTALL_INTERFACE:lib/backends/opengl3.cpp>"
-	"$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/backends/opengl3.cpp>"
-)
+if(BUILD_OPENGL3)
+	list(APPEND TARGET_LIST "ez-imgui-opengl3")
 
-add_library(ez-imgui-opengl4 INTERFACE)
-target_sources(ez-imgui-opengl4 INTERFACE 
-	"$<INSTALL_INTERFACE:lib/backends/opengl4.cpp>"
-	"$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/backends/opengl4.cpp>"
-)
+	add_library(ez-imgui-opengl3 STATIC
+		"src/backends/opengl3.cpp"
+	)
+	target_link_libraries(ez-imgui-opengl3 PUBLIC ez::imgui)
 
-add_library(ez-imgui-opengles2 INTERFACE)
-target_sources(ez-imgui-opengles2 INTERFACE 
-	"$<INSTALL_INTERFACE:lib/backends/opengl_es2.cpp>"
-	"$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/backends/opengl_es2.cpp>"
-)
+	set_target_properties(ez-imgui-opengl3 PROPERTIES EXPORT_NAME "imgui-opengl3")
+	add_library(ez::imgui-opengl3 ALIAS ez-imgui-opengl3)
+endif()
 
-set_target_properties(ez-imgui PROPERTIES EXPORT_NAME "imgui")
-set_target_properties(ez-imgui-opengl3 PROPERTIES EXPORT_NAME "imgui-opengl3")
-set_target_properties(ez-imgui-opengl4 PROPERTIES EXPORT_NAME "imgui-opengl4")
-set_target_properties(ez-imgui-opengles2 PROPERTIES EXPORT_NAME "imgui-opengles2")
+if(BUILD_OPENGL2)
+	list(APPEND TARGET_LIST "ez-imgui-opengl2")
+
+	add_library(ez-imgui-opengl2 STATIC
+		"src/backends/opengl2.cpp"
+	)
+	target_link_libraries(ez-imgui-opengl2 PUBLIC ez::imgui)
+
+	set_target_properties(ez-imgui-opengl2 PROPERTIES EXPORT_NAME "imgui-opengl2")
+	add_library(ez::imgui-opengl2 ALIAS ez-imgui-opengl2)
+endif()
+
 
 # Build the tests once the option is enabled.
-if(${BUILD_TESTS})
-	add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/tests")
+if(BUILD_TESTS)
+	add_subdirectory("tests")
 endif()
 
 # Set the proper installation path
-set(CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}/${CMAKE_PROJECT_NAME})
+if(SEPARATE_DIRECTORY)
+	set(CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}/ez-imgui)
+endif()
 
 install(
 	DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/"
@@ -65,33 +106,21 @@ install(
 	FILES_MATCHING
 	PATTERN "*.h" PATTERN "*.hpp"
 )
-install(
-	DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/backends/"
-	DESTINATION "lib/backends/"
-	FILES_MATCHING
-	PATTERN "*.cpp"
-)
 
-install(TARGETS ez-imgui ez-imgui-opengl3
-	EXPORT ${CMAKE_PROJECT_NAME}-targets
-	RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}/$<CONFIG>"
-	ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}/$<CONFIG>"
-	LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}/$<CONFIG>"
+install(TARGETS ${TARGET_LIST}
+    EXPORT "ez-imgui-export"
+    PUBLIC_HEADER DESTINATION "include"
+    ARCHIVE DESTINATION "lib/$<CONFIG>"
+    LIBRARY DESTINATION "lib/$<CONFIG>"
+    RUNTIME DESTINATION "bin/$<CONFIG>"
 )
 
 install_package(
-	NAME "${CMAKE_PROJECT_NAME}"
+	NAME "ez-imgui"
 	NAMESPACE "ez::"
-	EXPORT "${CMAKE_PROJECT_NAME}-targets"
-	VERSION "${CMAKE_PROJECT_VERSION}"
-
-	# Version compatiblity
+	EXPORT "ez-imgui-export"
+	VERSION "${EZ_IMGUI_VERSION}"
 	COMPATIBILITY "SameMajorVersion"
-
-	# Relative install location of the package config files.
-	DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/${CMAKE_PROJECT_NAME}"
-
-	# Pre and Post configuration files for the packages. Files are run as scripts when the package is found.
-	PRECONFIG "${CMAKE_CURRENT_SOURCE_DIR}/preconfig.cmake"
-	#POSTCONFIG "${CMAKE_CURRENT_SOURCE_DIR}/postconfig.cmake"
+	DESTINATION DEFAULT
+	PRECONFIG "cmake/preconfig.cmake"
 )
